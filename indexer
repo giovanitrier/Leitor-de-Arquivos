@@ -1,0 +1,247 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <math.h>
+
+#define TAMANHO_TABELA 100
+#define TAMANHO_LINHA 100
+
+//GIOVANI TRIERWEILER ALVES - GRR20205160
+
+//Estrutura da Tabela Hash
+typedef struct EntradaTabela {
+    char palavra[50];
+    int contador;
+    double tfidf;
+    struct EntradaTabela *prox;
+} EntradaTabela;
+
+
+// Função hash
+int hash(char *palavra) {
+    int hash = 0;
+    while (*palavra) { // Percorre cada caractere na string até o caractere nulo (fim da string)
+        hash += *palavra;// Soma o valor ASCII do caractere ao valor da hash
+        palavra++;// Move para o próximo caractere na strin
+    }
+    return hash % TAMANHO_TABELA;// Retorna o valor calculado modulo o tamanho da tabela hash
+}
+
+// Função para inserir uma palavra na tabela hash
+void insereNaTabela(EntradaTabela *tabela, char *palavra) {
+    int indice = hash(palavra);
+    // Percorre a lista encadeada no índice da tabela hash
+    EntradaTabela *entradaAtual = &tabela[indice];
+    
+    while (entradaAtual->prox != NULL && strcmp(entradaAtual->prox->palavra, palavra) != 0) {
+        entradaAtual = entradaAtual->prox;
+    }
+	// Se a palavra não existir, cria uma nova entrada; caso contrário, incrementa o contador
+    if (entradaAtual->prox == NULL) {
+        EntradaTabela *novaEntrada = (EntradaTabela *)malloc(sizeof(EntradaTabela));
+        if (novaEntrada == NULL) {
+            perror("Erro ao alocar memória");
+            exit(EXIT_FAILURE);
+        }
+
+        strcpy(novaEntrada->palavra, palavra);
+        novaEntrada->contador = 1;
+        novaEntrada->prox = NULL;
+
+        entradaAtual->prox = novaEntrada;
+    } else {
+        entradaAtual->prox->contador++;
+    }
+}
+
+void calculaTFIDF(EntradaTabela *tabela, int totalDocumentos) {
+    for (int i = 0; i < TAMANHO_TABELA; i++) {
+        EntradaTabela *entradaAtual = tabela[i].prox;
+        while (entradaAtual != NULL) {
+            entradaAtual->tfidf = (double)entradaAtual->contador * log((double)totalDocumentos / (double)entradaAtual->contador);
+            entradaAtual = entradaAtual->prox;
+        }
+    }
+}
+
+void processaArquivo(FILE *arquivo, EntradaTabela *tabela, int *totalDocumentos) {
+    char linha[TAMANHO_LINHA];
+	
+	// Converte todas as letras para minúsculas e ignora caracteres não-alfabéticos
+    while (fgets(linha, sizeof(linha), arquivo) != NULL) {
+        for (int i = 0; i < strlen(linha); i++) {
+            if (isalpha(linha[i])) {
+                linha[i] = tolower(linha[i]);
+            } else {
+                linha[i] = ' '; // Substitui não-alfabéticos por espaços para manter a separação de palavras
+            }
+        }
+		 // Tokeniza a linha com base nos espaços
+        char *token = strtok(linha, " ");
+        while (token != NULL) {
+        	// Remove o caractere de nova linha, se presente
+            char *pos;
+            if ((pos = strchr(token, '\n')) != NULL) {
+                *pos = '\0';
+            }
+			 // Insere a palavra na tabela hash
+            if (strlen(token) > 0) { // Verifica se a string não está vazia após remover caracteres não-alfabéticos
+                insereNaTabela(tabela, token);
+            }
+
+            token = strtok(NULL, " ");
+        }
+    }
+
+    (*totalDocumentos)++;
+}
+// Função para contar as ocorrências de uma palavra na tabela hash
+int contaOcorrenciasPalavra(EntradaTabela *tabela, char *palavra) {
+    int indice = hash(palavra);
+    EntradaTabela *entradaAtual = &tabela[indice];
+// Procura a palavra na lista encadeada no índice da tabela hash
+    while (entradaAtual->prox != NULL && strcmp(entradaAtual->prox->palavra, palavra) != 0) {
+        entradaAtual = entradaAtual->prox;
+    }
+ // Retorna o contador se a palavra for encontrada, 0 caso contrário
+    if (entradaAtual->prox == NULL) {
+        return 0;
+    } else {
+        return entradaAtual->prox->contador;
+    }
+}
+
+int main() {
+	int entradaMenu;
+	do {
+
+	    
+	    printf("Selecione uma das opcoes abaixo:\n");
+	    printf("freq N ARQUIVO - Digite 1\n");
+	    printf("freq-word PALAVRA ARQUIVO - Digite 2\n");
+	    printf("termo ARQUIVO - Digite 3\n");
+	    printf("Sair - Digite 0\n");
+	    scanf("%d", &entradaMenu);
+	
+	    if (entradaMenu == 3) {
+	    // Solicita ao usuário que insira os caminhos dos arquivos
+	    int numArquivos;
+	    printf("Digite o número de arquivos: ");
+	    scanf("%d", &numArquivos);
+	
+	    char nomesArquivos[numArquivos][200];
+	
+	    for (int i = 0; i < numArquivos; i++) {
+	        printf("Digite o caminho do arquivo %d: ", i + 1);
+	        scanf(" %[^\n]", nomesArquivos[i]);
+	    }
+	
+	    // Solicita o termo específico
+	    char termoBusca[50];
+	    printf("Digite o termo para buscar nos arquivos: ");
+	    scanf(" %[^\n]", termoBusca);
+	
+	    int maxContador = 0; // Contador máximo encontrado
+	    char arquivoMaxContador[200]; // Nome do arquivo com o contador máximo
+	
+	    // Processa os arquivos
+	    for (int i = 0; i < numArquivos; i++) {
+	        FILE *arquivo = fopen(nomesArquivos[i], "r");
+	
+	        if (arquivo == NULL) {
+	            perror("Erro ao abrir o arquivo");
+	            return 1;
+	        }
+	
+	        EntradaTabela tabela[TAMANHO_TABELA] = {0};
+	        int totalDocumentos = 0;
+	
+	        // Processa o arquivo e atualiza a contagem de documentos
+	        processaArquivo(arquivo, tabela, &totalDocumentos);
+	
+	        fclose(arquivo);
+	
+	        // Calcula o contador para o termo específico neste arquivo
+	        int ocorrencias = contaOcorrenciasPalavra(tabela, termoBusca);
+	
+	        // Verifica se o contador atual é maior que o máximo encontrado até agora
+	        if (ocorrencias > maxContador) {
+	            maxContador = ocorrencias;
+	            strcpy(arquivoMaxContador, nomesArquivos[i]);
+	        }
+	    }
+	
+	    // Exibe o resultado
+	    printf("O termo '%s' aparece mais vezes no arquivo: %s\n", termoBusca, arquivoMaxContador);
+	}
+	
+	
+	    if (entradaMenu == 2) {
+	    	printf("Digite o caminho ate arquivo desejado");
+	    	char nomeArquivo[TAMANHO_LINHA];
+	    	scanf(" %[^\n]",nomeArquivo);
+	    	printf("Caminho do arquivo: %s\n", nomeArquivo);
+	    	
+	
+		        FILE *arquivo;
+		        arquivo = fopen(nomeArquivo, "r");
+		
+		        if (arquivo == NULL) {
+		            perror("Erro ao abrir o arquivo");
+		            return 1;
+		        }
+		
+		        EntradaTabela tabela[TAMANHO_TABELA] = {0};
+		
+		        // Processa o arquivo
+		        int totalDocumentos = 0;
+		        processaArquivo(arquivo, tabela, &totalDocumentos);
+		
+		        char palavraBuscada[50];
+		        printf("Digite a palavra para contar as ocorrencias: ");
+		        scanf("%s", palavraBuscada);
+		
+		        int ocorrencias = contaOcorrenciasPalavra(tabela, palavraBuscada);
+		        printf("A palavra '%s' ocorre %d vezes no arquivo.\n", palavraBuscada, ocorrencias);
+		
+		        fclose(arquivo);
+	        }
+	    
+	    
+	
+	    if (entradaMenu == 1) {
+	    	
+			printf("Digite o caminho ate arquivo desejado");
+			char nomeArquivo[TAMANHO_LINHA];
+	    	scanf(" %[^\n]",nomeArquivo);
+	    	printf("Caminho do arquivo: %s\n", nomeArquivo);
+	
+			FILE *arquivo;
+	        arquivo = fopen(nomeArquivo, "r");
+			
+	        if (arquivo == NULL) {
+	            perror("Erro ao abrir o arquivo");
+	            return 1;
+	        }
+	
+	        EntradaTabela tabela[TAMANHO_TABELA] = {0};
+	
+	        // Processa o arquivo
+	        int totalDocumentos = 0;
+	        processaArquivo(arquivo, tabela, &totalDocumentos);
+	
+	        // Exibe o resultado
+	        for (int i = 0; i < TAMANHO_TABELA; i++) {
+	            EntradaTabela *entradaAtual = tabela[i].prox;
+	            while (entradaAtual != NULL) {
+	                printf("Palavra: %s, Contador: %d\n", entradaAtual->palavra, entradaAtual->contador);
+	                entradaAtual = entradaAtual->prox;
+	            }
+	        }
+	        fclose(arquivo);
+	    }
+    } while(entradaMenu != 0);
+    
+    return 0;
+}
