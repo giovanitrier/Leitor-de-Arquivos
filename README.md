@@ -1,12 +1,20 @@
-#Leitor de Arquivos
-Para utlizar o programa basta seguir as instruções do menu principal.
-*Obs: Na hora de inserir o caminho dos arquivos, favor seguir o exemplo abaixo:
-C:/Users/User/Desktop/Trabaho EDII/Arquivos Pequenos/101.txt
+# 📚 Leitor de Arquivos com Índice Invertido
 
-O programa conta com 3 opções:
+[![C Language](https://img.shields.io/badge/Language-C-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Data Structure](https://img.shields.io/badge/Data%20Structure-Hash%20Table-green.svg)](https://en.wikipedia.org/wiki/Hash_table)
 
-freq N ARQUIVO: É possível visualizar a quantidade de vezes que cada palavra aparece no arquivo.
-freq-word PALAVRA ARQUIVO: É possível visualisar a quantidade de vezes que uma palavra específica aparece no arquivo.
-termo ARQUIVO: É possível incluir diversos arquivos para leitura e incluir um termo para busca, o programa devolve o caminho do arquivo em que o termo pesquisado mais aparece.
+Um processador de textos desenvolvido em **C** que utiliza **tabela hash** para indexar palavras e contar frequências. Este projeto implementa um índice invertido simples para análise estatística de arquivos de texto.
 
-Autor: Giovani Trierweiler Alves
+## ✨ Funcionalidades
+
+| Comando | Descrição | Parâmetros |
+|---------|-----------|------------|
+| `freq N ARQUIVO` | Exibe as N palavras mais frequentes | `N`: Quantidade (0 = todas)<br>`ARQUIVO`: Caminho do arquivo |
+| `freq-word PALAVRA ARQUIVO` | Busca frequência de uma palavra | `PALAVRA`: Termo específico<br>`ARQUIVO`: Caminho do arquivo |
+| `termo ARQUIVO` | Busca em múltiplos arquivos | `ARQUIVO`: Primeiro arquivo<br>*(interativo para demais)* |
+
+## 🚀 Instalação e Uso
+
+### Pré-requisitos
+- Algum Compilador para C
+- Sistema operacional compatível com C
